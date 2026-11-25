@@ -41,8 +41,9 @@ jobs:
 
       - name: Run Headless Smoke Test
         run: |
-          ./publish/win-x64/VoxCable.exe --smoke-test --smoke-test-out smoke.txt
+          $p = Start-Process -FilePath "./publish/win-x64/VoxCable.exe" -ArgumentList @('--smoke-test', '--smoke-test-out', 'smoke.txt') -Wait -PassThru
           Get-Content smoke.txt
+          if ($p.ExitCode -ne 0) { exit $p.ExitCode }
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
