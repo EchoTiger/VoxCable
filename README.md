@@ -39,7 +39,7 @@ dotnet run --project src\VoxCable\VoxCable.csproj
 
 ### Publish Standalone Single-File Release
 ```powershell
-dotnet publish src\VoxCable\VoxCable.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o dist
+dotnet publish src\VoxCable\VoxCable.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist
 ```
 
 ### Headless Smoke Test
