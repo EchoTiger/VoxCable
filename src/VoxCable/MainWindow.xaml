@@ -1,0 +1,869 @@
+<Window x:Class="VoxCable.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="VoxCable Studio — Virtual Audio FX Bridge"
+        Icon="Assets/voxcable.ico"
+        Width="1040" Height="790"
+        MinWidth="840" MinHeight="230"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource WindowBgBrush}">
+
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Header, Audio Patch Bay, Monitor & App Loopback, Signal Flow & Meters -->
+        <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+            <StackPanel>
+                <!-- Title Row -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="VOXCABLE"
+                                   FontSize="17"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="  VIRTUAL AUDIO FX STUDIO"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   VerticalAlignment="Center" />
+                        <Border Background="#12273B" BorderBrush="#264C6E" BorderThickness="1" CornerRadius="8" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="v2.0" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" />
+                        </Border>
+                    </StackPanel>
+
+                    <Button x:Name="MiniModeButton"
+                            Grid.Column="1"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Content="Mini Mode"
+                            Padding="9,3"
+                            Margin="0,0,8,0"
+                            FontSize="11"
+                            ToolTip="Toggle compact always-on-top overlay strip"
+                            Click="MiniModeButton_Click" />
+
+                    <Border x:Name="StatusBadge"
+                            Grid.Column="2"
+                            Background="#1E2534"
+                            BorderBrush="#2E384D"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="10,3">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource StatusMutedBrush}" Margin="0,0,7,0" />
+                            <TextBlock x:Name="StatusText"
+                                       Text="STANDBY"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Primary Device Routing Row -->
+                <Grid x:Name="RoutingRow">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="105" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="125" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="INPUT SOURCE (MIC / LOOPBACK)" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,3" />
+                        <ComboBox x:Name="InputComboBox" SelectionChanged="DeviceComboBox_SelectionChanged" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="IN MODE" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,3" />
+                        <ComboBox x:Name="InputModeComboBox" SelectionChanged="DspControlChanged" ToolTip="Use Left (XLR 1) or Mono Sum if your USB/XLR mic only plays in one ear.">
+                            <ComboBoxItem Content="Stereo" Tag="0" IsSelected="True" />
+                            <ComboBoxItem Content="Mono Sum" Tag="1" />
+                            <ComboBoxItem Content="Left (XLR 1)" Tag="2" />
+                            <ComboBoxItem Content="Right (XLR 2)" Tag="3" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="OUTPUT TARGET (VIRTUAL CABLE / DEVICE)" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,3" />
+                        <ComboBox x:Name="OutputComboBox" SelectionChanged="DeviceComboBox_SelectionChanged" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="6">
+                        <TextBlock Text="LATENCY" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,3" />
+                        <ComboBox x:Name="LatencyComboBox" SelectionChanged="LatencyComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Low (25 ms)" Tag="25" />
+                            <ComboBoxItem Content="Balanced (40 ms)" Tag="40" IsSelected="True" />
+                            <ComboBoxItem Content="Safe (70 ms)" Tag="70" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <Button Grid.Column="8"
+                            x:Name="RefreshDevicesButton"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Height="32" Width="34"
+                            VerticalAlignment="Bottom"
+                            ToolTip="Refresh Audio Devices &amp; Active Apps"
+                            Click="RefreshDevicesButton_Click">
+                        <TextBlock Text="↻" FontSize="15" FontWeight="Bold" />
+                    </Button>
+
+                    <Button Grid.Column="10"
+                            x:Name="ConnectButton"
+                            Style="{StaticResource ConnectButtonStyle}"
+                            Height="32"
+                            VerticalAlignment="Bottom"
+                            Content="CONNECT"
+                            Click="ConnectButton_Click" />
+                </Grid>
+
+                <!-- Secondary Studio Routing Row: Local Monitor ("Hear Myself") & Win 11 Per-App Loopback -->
+                <Grid x:Name="StudioRoutingRow" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Local Monitor Output -->
+                    <Border Grid.Column="0" Background="#121722" BorderBrush="#212A3B" BorderThickness="1" CornerRadius="7" Padding="8,6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,5">
+                                <CheckBox x:Name="MonitorEnabledBox"
+                                          Style="{StaticResource ToggleSwitchStyle}"
+                                          Content="Monitor Out (Hear Myself)"
+                                          FontWeight="SemiBold"
+                                          Checked="MonitorRoutingChanged"
+                                          Unchecked="MonitorRoutingChanged" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <CheckBox x:Name="MonitorVoiceBox" Style="{StaticResource DarkCheckBoxStyle}" Content="Voice" IsChecked="True" Margin="0,0,10,0" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                    <CheckBox x:Name="MonitorSfxBox" Style="{StaticResource DarkCheckBoxStyle}" Content="SFX" IsChecked="True" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                </StackPanel>
+                            </Grid>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="105" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox Grid.Column="0" x:Name="MonitorComboBox" Height="28" FontSize="11.5" SelectionChanged="MonitorRoutingChanged" />
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <Grid>
+                                        <TextBlock Text="Vol" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="MonitorVolumeValue" Text="80%" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Slider x:Name="MonitorVolumeSlider" Minimum="0" Maximum="1.5" Value="0.80" Tag="0.80" Height="16" ValueChanged="DspControlChanged" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Win 11 Per-App Process Loopback -->
+                    <Border Grid.Column="2" Background="#121722" BorderBrush="#212A3B" BorderThickness="1" CornerRadius="7" Padding="8,6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,5">
+                                <CheckBox x:Name="AppLoopbackEnabledBox"
+                                          Style="{StaticResource ToggleSwitchStyle}"
+                                          Content="Win11 Per-App Mix"
+                                          FontWeight="SemiBold"
+                                          ToolTip="Mix audio from a single Windows app (e.g. Spotify or browser) alongside your mic without echoing Discord"
+                                          Checked="AppLoopbackRoutingChanged"
+                                          Unchecked="AppLoopbackRoutingChanged" />
+                                <CheckBox x:Name="RouteAppThroughFxBox"
+                                          Style="{StaticResource DarkCheckBoxStyle}"
+                                          Content="App → FX"
+                                          HorizontalAlignment="Right"
+                                          Checked="DspControlChanged"
+                                          Unchecked="DspControlChanged" />
+                            </Grid>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="6" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="100" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox Grid.Column="0" x:Name="AppProcessComboBox" Height="28" FontSize="11.5" SelectionChanged="AppLoopbackRoutingChanged" />
+                                <Button Grid.Column="2" x:Name="RefreshAppsButton" Style="{StaticResource SecondaryButtonStyle}" Height="28" Width="28" Padding="0" ToolTip="Scan active audio apps" Click="RefreshAppsButton_Click">
+                                    <TextBlock Text="↻" FontSize="13" FontWeight="Bold" />
+                                </Button>
+                                <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                                    <Grid>
+                                        <TextBlock Text="Vol" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="AppLoopbackVolumeValue" Text="70%" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Slider x:Name="AppLoopbackVolumeSlider" Minimum="0" Maximum="1.5" Value="0.70" Tag="0.70" Height="16" ValueChanged="DspControlChanged" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Feedback Warning / Error Banners -->
+                <Border x:Name="FeedbackWarningBanner"
+                        Visibility="Collapsed"
+                        Margin="0,8,0,0"
+                        Background="#2A200C"
+                        BorderBrush="{StaticResource WarnAmberBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10,5">
+                    <TextBlock Text="Heads up: Loopback input and Output target point to the same device — connecting will request confirmation to prevent feedback howling."
+                               Foreground="#FCD34D"
+                               FontSize="11.5" />
+                </Border>
+
+                <Border x:Name="ErrorBanner"
+                        Visibility="Collapsed"
+                        Margin="0,8,0,0"
+                        Background="#2D1519"
+                        BorderBrush="{StaticResource AccentCrimsonBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10,5">
+                    <TextBlock x:Name="ErrorBannerText"
+                               Foreground="#FCA5A5"
+                               FontSize="11.5"
+                               TextWrapping="Wrap" />
+                </Border>
+
+                <!-- Live Interactive Signal Flow Chain -->
+                <WrapPanel x:Name="SignalFlowPanel" Margin="0,8,0,0" VerticalAlignment="Center" />
+
+                <!-- Meters, Live Waveform Scope & Master Controls -->
+                <Grid Margin="0,9,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="155" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Input Peak Meter (GPU ScaleTransform, zero layout thrash) -->
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <Grid Margin="0,0,0,3">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="INPUT" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" />
+                                <Border x:Name="InputClipBadge" Visibility="Collapsed" Background="#7F1D1D" CornerRadius="3" Padding="4,0" Margin="6,0,0,0">
+                                    <TextBlock Text="CLIP" FontSize="9" FontWeight="Bold" Foreground="#FCA5A5" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock x:Name="InputPeakText" Text="-inf dB" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Border Height="6" CornerRadius="3" Background="#202838" ClipToBounds="True" Margin="0,0,0,2">
+                            <Border x:Name="InputMeterBarL" Background="{StaticResource InputMeterBrush}" CornerRadius="3" RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="InputMeterScaleL" ScaleX="0" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Border>
+                        <Border Height="6" CornerRadius="3" Background="#202838" ClipToBounds="True">
+                            <Border x:Name="InputMeterBarR" Background="{StaticResource InputMeterBrush}" CornerRadius="3" RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="InputMeterScaleR" ScaleX="0" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Live Mini Waveform Scope -->
+                    <Border Grid.Column="2" Height="30" Background="#0F141F" BorderBrush="#232D40" BorderThickness="1" CornerRadius="6" ClipToBounds="True" Padding="2">
+                        <Canvas x:Name="WaveformCanvas" Width="148" Height="24">
+                            <Line X1="0" Y1="12" X2="148" Y2="12" Stroke="#1E293B" StrokeThickness="1" />
+                            <Polyline x:Name="WaveformPolyline" Stroke="{StaticResource AccentCyanBrush}" StrokeThickness="1.35" StrokeLineJoin="Round" />
+                        </Canvas>
+                    </Border>
+
+                    <!-- Output Peak Meter (GPU ScaleTransform) -->
+                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                        <Grid Margin="0,0,0,3">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="OUTPUT" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" />
+                                <Border x:Name="OutputClipBadge" Visibility="Collapsed" Background="#7F1D1D" CornerRadius="3" Padding="4,0" Margin="6,0,0,0">
+                                    <TextBlock Text="CLIP" FontSize="9" FontWeight="Bold" Foreground="#FCA5A5" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock x:Name="OutputPeakText" Text="-inf dB" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Border Height="6" CornerRadius="3" Background="#202838" ClipToBounds="True" Margin="0,0,0,2">
+                            <Border x:Name="OutputMeterBarL" Background="{StaticResource OutputMeterBrush}" CornerRadius="3" RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="OutputMeterScaleL" ScaleX="0" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Border>
+                        <Border Height="6" CornerRadius="3" Background="#202838" ClipToBounds="True">
+                            <Border x:Name="OutputMeterBarR" Background="{StaticResource OutputMeterBrush}" CornerRadius="3" RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="OutputMeterScaleR" ScaleX="0" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center">
+                        <CheckBox x:Name="BypassCheckBox"
+                                  Style="{StaticResource ToggleSwitchStyle}"
+                                  Content="Bypass"
+                                  Margin="0,0,10,0"
+                                  Checked="DspControlChanged"
+                                  Unchecked="DspControlChanged" />
+                        <CheckBox x:Name="MuteCheckBox"
+                                  Style="{StaticResource ToggleSwitchStyle}"
+                                  Content="Mute"
+                                  Margin="0,0,10,0"
+                                  Checked="DspControlChanged"
+                                  Unchecked="DspControlChanged" />
+                        <Button x:Name="HoldBleepButton"
+                                Style="{StaticResource BleepButtonStyle}"
+                                Content="BLEEP"
+                                ToolTip="Hold to censor voice with 1 kHz broadcast tone (Global Hotkey: Ctrl+Alt+X)"
+                                PreviewMouseLeftButtonDown="HoldBleepButton_Down"
+                                PreviewMouseLeftButtonUp="HoldBleepButton_Up"
+                                LostMouseCapture="HoldBleepButton_Up" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 1: One-Click Presets (Built-in + Custom) -->
+        <WrapPanel x:Name="PresetsPanel" Grid.Row="1" Margin="0,0,0,4" />
+
+        <!-- Row 2: Main Tabbed Studio (Hidden in Mini Mode) -->
+        <TabControl x:Name="MainTabControl" Grid.Row="2">
+            <!-- Tab 1: Effects Rack -->
+            <TabItem Header="Effects Rack">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,6,0" PreviewMouseDoubleClick="EffectsRack_PreviewMouseDoubleClick">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column -->
+                        <StackPanel Grid.Column="0">
+                            <!-- Broadcast Voice Strip -->
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="BROADCAST VOICE STRIP" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Ellipse x:Name="GateStatusDot" Width="8" Height="8" Fill="{StaticResource ActiveGreenBrush}" Margin="0,0,5,0" ToolTip="Noise Gate Open/Closed Indicator" />
+                                            <TextBlock x:Name="CompGrText" Text="GR: 0.0 dB" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,2">
+                                        <CheckBox x:Name="HighPassEnabledBox" Style="{StaticResource DarkCheckBoxStyle}" Content="High-Pass Rumble Filter" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                        <TextBlock x:Name="HighPassValue" Text="85 Hz" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Slider x:Name="HighPassSlider" Minimum="40" Maximum="200" Value="85" Tag="85" ValueChanged="DspControlChanged" Margin="0,0,0,6" />
+
+                                    <Grid Margin="0,0,0,2">
+                                        <CheckBox x:Name="DenoiseEnabledBox" Style="{StaticResource DarkCheckBoxStyle}" Content="Spectral AI Denoiser (Fan/Hiss)" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                        <TextBlock x:Name="DenoiseValue" Text="65%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Slider x:Name="DenoiseSlider" Minimum="0" Maximum="1" Value="0.65" Tag="0.65" ValueChanged="DspControlChanged" Margin="0,0,0,6" />
+
+                                    <Grid Margin="0,0,0,2">
+                                        <CheckBox x:Name="NoiseGateEnabledBox" Style="{StaticResource DarkCheckBoxStyle}" Content="Noise Gate (Hysteresis + Hold)" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                        <TextBlock x:Name="NoiseGateValue" Text="-42 dB" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Slider x:Name="NoiseGateSlider" Minimum="-65" Maximum="-10" Value="-42" Tag="-42" ValueChanged="DspControlChanged" Margin="0,0,0,6" />
+
+                                    <Grid Margin="0,0,0,2">
+                                        <CheckBox x:Name="CompressorEnabledBox" Style="{StaticResource DarkCheckBoxStyle}" Content="Vocal Compressor (Thresh / Ratio / Makeup)" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                        <TextBlock x:Name="CompSummaryValue" Text="-18 dB · 3.5:1 · +3 dB" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="CompThreshSlider" Minimum="-40" Maximum="-4" Value="-18" Tag="-18" ToolTip="Compressor Threshold (dB)" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="CompRatioSlider" Minimum="1.2" Maximum="10" Value="3.5" Tag="3.5" ToolTip="Compressor Ratio" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="4" x:Name="CompMakeupSlider" Minimum="-3" Maximum="14" Value="3" Tag="3" ToolTip="Makeup Gain (dB)" ValueChanged="DspControlChanged" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Pitch, Formant & Auto-Tune Card -->
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="PITCH, FORMANT &amp; AUTO-TUNE" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <CheckBox x:Name="PitchEnabledBox" Style="{StaticResource ToggleSwitchStyle}" Content="Pitch" Margin="0,0,10,0" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                            <CheckBox x:Name="AutoTuneEnabledBox" Style="{StaticResource ToggleSwitchStyle}" Content="Auto-Tune" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Pitch Shift (Double-click sliders to reset)" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="PitchSemitonesValue" Text="0.0 st" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Slider x:Name="PitchSemitonesSlider" Minimum="-12" Maximum="12" Value="0" Tag="0" ValueChanged="DspControlChanged" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,5,0,7">
+                                        <Button Content="-12" Tag="-12" Style="{StaticResource QuickPitchButtonStyle}" Click="QuickPitchButton_Click" />
+                                        <Button Content="-6" Tag="-6" Style="{StaticResource QuickPitchButtonStyle}" Click="QuickPitchButton_Click" />
+                                        <Button Content="0" Tag="0" Style="{StaticResource QuickPitchButtonStyle}" Click="QuickPitchButton_Click" />
+                                        <Button Content="+6" Tag="6" Style="{StaticResource QuickPitchButtonStyle}" Click="QuickPitchButton_Click" />
+                                        <Button Content="+12" Tag="12" Style="{StaticResource QuickPitchButtonStyle}" Click="QuickPitchButton_Click" />
+                                        <CheckBox x:Name="PreserveFormantsBox" Style="{StaticResource DarkCheckBoxStyle}" Content="Preserve Formants" Margin="10,0,0,0" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                    </StackPanel>
+
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Formant Shift / Wet-Dry Mix" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="FormantPitchMixValue" Text="0.0 st / 100%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="FormantSlider" Minimum="-12" Maximum="12" Value="0" Tag="0" ToolTip="Formant Shift (active when Preserve Formants is checked)" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="PitchMixSlider" Minimum="0" Maximum="1" Value="1" Tag="1" ToolTip="Pitch Wet/Dry Mix" ValueChanged="DspControlChanged" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="75" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="120" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox Grid.Column="0" x:Name="AutoTuneKeyCombo" Height="27" FontSize="11" SelectionChanged="DspControlChanged">
+                                            <ComboBoxItem Content="Key: C" Tag="0" IsSelected="True" />
+                                            <ComboBoxItem Content="Key: C#" Tag="1" />
+                                            <ComboBoxItem Content="Key: D" Tag="2" />
+                                            <ComboBoxItem Content="Key: D#" Tag="3" />
+                                            <ComboBoxItem Content="Key: E" Tag="4" />
+                                            <ComboBoxItem Content="Key: F" Tag="5" />
+                                            <ComboBoxItem Content="Key: F#" Tag="6" />
+                                            <ComboBoxItem Content="Key: G" Tag="7" />
+                                            <ComboBoxItem Content="Key: G#" Tag="8" />
+                                            <ComboBoxItem Content="Key: A" Tag="9" />
+                                            <ComboBoxItem Content="Key: A#" Tag="10" />
+                                            <ComboBoxItem Content="Key: B" Tag="11" />
+                                        </ComboBox>
+                                        <ComboBox Grid.Column="2" x:Name="AutoTuneScaleCombo" Height="27" FontSize="11" SelectionChanged="DspControlChanged">
+                                            <ComboBoxItem Content="Chromatic" Tag="0" />
+                                            <ComboBoxItem Content="Major" Tag="1" IsSelected="True" />
+                                            <ComboBoxItem Content="Minor" Tag="2" />
+                                            <ComboBoxItem Content="Pent. Major" Tag="3" />
+                                            <ComboBoxItem Content="Pent. Minor" Tag="4" />
+                                        </ComboBox>
+                                        <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                                            <Grid>
+                                                <TextBlock Text="Retune" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                                <TextBlock x:Name="AutoTuneStrengthValue" Text="80%" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                            </Grid>
+                                            <Slider x:Name="AutoTuneStrengthSlider" Minimum="0" Maximum="1" Value="0.8" Tag="0.8" Height="16" ValueChanged="DspControlChanged" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Gain, 3-Band EQ & Output Stage -->
+                            <Border Style="{StaticResource CardBorderStyle}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="GAIN, 3-BAND EQ &amp; OUTPUT" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <CheckBox x:Name="EqEnabledBox" Style="{StaticResource ToggleSwitchStyle}" Content="EQ" Margin="0,0,10,0" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                            <CheckBox x:Name="LimiterEnabledBox" Style="{StaticResource DarkCheckBoxStyle}" Content="Soft Limiter" IsChecked="True" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Input Gain / Output Gain" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="InOutGainValue" Text="0.0 dB / 0.0 dB" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="InputGainSlider" Minimum="-24" Maximum="24" Value="0" Tag="0" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="OutputGainSlider" Minimum="-24" Maximum="24" Value="0" Tag="0" ValueChanged="DspControlChanged" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="EQ: Bass (180 Hz) / Mid (1 kHz) / Treble (4.5 kHz)" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="EqSummaryValue" Text="0 / 0 / 0 dB" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="BassSlider" Minimum="-15" Maximum="15" Value="0" Tag="0" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="MidSlider" Minimum="-15" Maximum="15" Value="0" Tag="0" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="4" x:Name="TrebleSlider" Minimum="-15" Maximum="15" Value="0" Tag="0" ValueChanged="DspControlChanged" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Right Column -->
+                        <StackPanel Grid.Column="2">
+                            <!-- Chorus / Widener -->
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="CHORUS / STEREO WIDENER" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <CheckBox x:Name="ChorusEnabledBox" Style="{StaticResource ToggleSwitchStyle}" HorizontalAlignment="Right" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Rate / Depth / Mix" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="ChorusSummaryValue" Text="1.4 Hz · 6.5 ms · 45%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="ChorusRateSlider" Minimum="0.2" Maximum="6" Value="1.4" Tag="1.4" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="ChorusDepthSlider" Minimum="1" Maximum="16" Value="6.5" Tag="6.5" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="4" x:Name="ChorusMixSlider" Minimum="0" Maximum="1" Value="0.45" Tag="0.45" ValueChanged="DspControlChanged" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Robot Ring-Mod -->
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="ROBOT RING-MODULATOR" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <CheckBox x:Name="RobotEnabledBox" Style="{StaticResource ToggleSwitchStyle}" HorizontalAlignment="Right" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Carrier Frequency / Mix" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="RobotSummaryValue" Text="75 Hz / 80%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="RobotFreqSlider" Minimum="15" Maximum="450" Value="75" Tag="75" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="RobotMixSlider" Minimum="0" Maximum="1" Value="0.8" Tag="0.8" ValueChanged="DspControlChanged" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Walkie-Talkie / Radio -->
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="WALKIE-TALKIE / RADIO" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <CheckBox x:Name="RadioSquelchBox" Style="{StaticResource DarkCheckBoxStyle}" Content="Squelch" IsChecked="True" Margin="0,0,10,0" ToolTip="Gates static during silence so Discord VAD works + adds squelch tail" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                            <CheckBox x:Name="RadioEnabledBox" Style="{StaticResource ToggleSwitchStyle}" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Drive / Static / Mix" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="RadioSummaryValue" Text="5.0x · 3% · 100%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="RadioDriveSlider" Minimum="1" Maximum="18" Value="5" Tag="5" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="RadioStaticSlider" Minimum="0" Maximum="0.30" Value="0.03" Tag="0.03" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="4" x:Name="RadioMixSlider" Minimum="0" Maximum="1" Value="1" Tag="1" ValueChanged="DspControlChanged" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Bitcrusher / Retro 8-Bit -->
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="BITCRUSHER / RETRO 8-BIT" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <CheckBox x:Name="BitcrushEnabledBox" Style="{StaticResource ToggleSwitchStyle}" HorizontalAlignment="Right" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Bit Depth / Downsample / Mix" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="BitcrushSummaryValue" Text="6 bits · 6x · 85%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="BitcrushBitsSlider" Minimum="2" Maximum="16" Value="6" Tag="6" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="BitcrushDownsampleSlider" Minimum="1" Maximum="32" Value="6" Tag="6" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="4" x:Name="BitcrushMixSlider" Minimum="0" Maximum="1" Value="0.85" Tag="0.85" ValueChanged="DspControlChanged" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Echo & Reverb (Now with Reverb Damping!) -->
+                            <Border Style="{StaticResource CardBorderStyle}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="ECHO &amp; REVERB" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <CheckBox x:Name="EchoEnabledBox" Style="{StaticResource ToggleSwitchStyle}" Content="Echo" Margin="0,0,10,0" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                            <CheckBox x:Name="ReverbEnabledBox" Style="{StaticResource ToggleSwitchStyle}" Content="Reverb" Checked="DspControlChanged" Unchecked="DspControlChanged" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Echo: Delay / Feedback / Mix" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="EchoSummaryValue" Text="260 ms · 45% · 40%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="EchoDelaySlider" Minimum="25" Maximum="900" Value="260" Tag="260" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="EchoFeedbackSlider" Minimum="0" Maximum="0.85" Value="0.45" Tag="0.45" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="4" x:Name="EchoMixSlider" Minimum="0" Maximum="1" Value="0.40" Tag="0.40" ValueChanged="DspControlChanged" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,2">
+                                        <TextBlock Text="Reverb: Room / Damping / Mix" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="ReverbSummaryValue" Text="65% · 40% · 35%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0" x:Name="ReverbRoomSlider" Minimum="0.1" Maximum="1.0" Value="0.65" Tag="0.65" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="2" x:Name="ReverbDampingSlider" Minimum="0.05" Maximum="1.0" Value="0.40" Tag="0.40" ValueChanged="DspControlChanged" />
+                                        <Slider Grid.Column="4" x:Name="ReverbMixSlider" Minimum="0" Maximum="1" Value="0.35" Tag="0.35" ValueChanged="DspControlChanged" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 2: 2-Bank Drag-and-Drop Soundboard -->
+            <TabItem Header="Soundboard (16 Pads)">
+                <Border Style="{StaticResource CardBorderStyle}" Margin="0,8,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="190" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <Grid Margin="0,0,0,2">
+                                    <TextBlock Text="SFX Master Volume" FontSize="11.5" Foreground="{StaticResource TextMutedBrush}" />
+                                    <TextBlock x:Name="SfxVolumeValue" Text="85%" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                </Grid>
+                                <Slider x:Name="SfxVolumeSlider" Minimum="0" Maximum="1.5" Value="0.85" Tag="0.85" ValueChanged="DspControlChanged" />
+                            </StackPanel>
+
+                            <CheckBox Grid.Column="2"
+                                      x:Name="RouteSfxThroughFxBox"
+                                      Style="{StaticResource DarkCheckBoxStyle}"
+                                      Content="Route Soundboard SFX through Voice FX"
+                                      Checked="DspControlChanged"
+                                      Unchecked="DspControlChanged" />
+
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="Bank1Button" Content="Bank 1 (Built-in)" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,0" Click="Bank1Button_Click" />
+                                <Button x:Name="Bank2Button" Content="Bank 2 (Custom)" Style="{StaticResource SecondaryButtonStyle}" Click="Bank2Button_Click" />
+                            </StackPanel>
+
+                            <Button Grid.Column="5"
+                                    Content="Stop All SFX"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="StopAllSfxButton_Click" />
+                        </Grid>
+
+                        <UniformGrid x:Name="SoundboardGrid" Grid.Row="1" Columns="4" Rows="2" Margin="-5" />
+
+                        <TextBlock Grid.Row="2"
+                                   Margin="0,10,0,0"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Text="Click to play (Global Hotkeys Ctrl+Alt+1..8 fire active bank pads). Drag &amp; drop any .wav / .mp3 / .m4a file onto a pad, or right-click to configure loop/load/reset." />
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- Tab 3: Custom Presets, Global Hotkeys & Wireless Touch Deck -->
+            <TabItem Header="Studio, Hotkeys &amp; Remote">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,8,6,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Custom User Presets -->
+                        <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Text="CUSTOM USER PRESETS" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,8" />
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="NewPresetNameBox" ToolTip="Name for custom voice preset" />
+                                    <Button Grid.Column="2" Content="Save Current" Style="{StaticResource SecondaryButtonStyle}" Click="SaveCustomPresetButton_Click" />
+                                </Grid>
+
+                                <ListBox x:Name="CustomPresetsListBox" Height="165" Margin="0,0,0,8" />
+
+                                <WrapPanel>
+                                    <Button Content="Apply Selected" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,6" Click="ApplyCustomPresetButton_Click" />
+                                    <Button Content="Delete Selected" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,6" Click="DeleteCustomPresetButton_Click" />
+                                    <Button Content="Export JSON..." Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,6" Click="ExportPresetsButton_Click" />
+                                    <Button Content="Import JSON..." Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,6,6" Click="ImportPresetsButton_Click" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Right Column: Hotkeys, Tray & Wireless Touch Deck -->
+                        <StackPanel Grid.Column="2">
+                            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="GLOBAL HOTKEYS &amp; SYSTEM TRAY" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="HotkeyStatusText" Text="12 active" FontSize="10.5" Foreground="{StaticResource ActiveGreenBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <CheckBox x:Name="GlobalHotkeysBox" Style="{StaticResource ToggleSwitchStyle}" Content="Enable Global Hotkeys (works inside games)" IsChecked="True" Margin="0,0,0,7" Checked="PlatformSettingsChanged" Unchecked="PlatformSettingsChanged" />
+                                    <CheckBox x:Name="MinimizeToTrayBox" Style="{StaticResource ToggleSwitchStyle}" Content="Minimize to System Tray" IsChecked="True" Margin="0,0,0,7" Checked="PlatformSettingsChanged" Unchecked="PlatformSettingsChanged" />
+                                    <CheckBox x:Name="AutoReconnectBox" Style="{StaticResource ToggleSwitchStyle}" Content="Auto-Reconnect when USB audio devices hot-plug" IsChecked="True" Margin="0,0,0,8" Checked="PlatformSettingsChanged" Unchecked="PlatformSettingsChanged" />
+
+                                    <Border Background="#111622" BorderBrush="#222B3C" BorderThickness="1" CornerRadius="6" Padding="8">
+                                        <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"
+                                                   Text="Ctrl+Alt+M: Mute Out  ·  Ctrl+Alt+B: Bypass FX  ·  Ctrl+Alt+X: Hold Censor Bleep  ·  Ctrl+Alt+1..8: Fire Soundboard Pads  ·  Ctrl+Alt+0: Stop All SFX" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Opt-in Wireless Touch Deck (Redfur Relay) -->
+                            <Border Style="{StaticResource CardBorderStyle}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="WIRELESS TOUCH DECK (REDFUR RELAY)" FontSize="11.5" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="RemoteDeckClientsText" Text="Offline" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="70" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" x:Name="RemoteDeckEnabledBox" Style="{StaticResource ToggleSwitchStyle}" Content="Enable Server" Checked="RemoteDeckSettingsChanged" Unchecked="RemoteDeckSettingsChanged" />
+                                        <CheckBox Grid.Column="2" x:Name="RemoteDeckAllowLanBox" Style="{StaticResource DarkCheckBoxStyle}" Content="Allow LAN" ToolTip="Bind wildcard for phones/tablets on Wi-Fi (falls back to localhost if Windows URLACL requires admin)" Checked="RemoteDeckSettingsChanged" Unchecked="RemoteDeckSettingsChanged" />
+                                        <TextBlock Grid.Column="3" Text="Port:" FontSize="11" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBox Grid.Column="4" x:Name="RemoteDeckPortBox" Text="8765" Padding="6,4" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="6" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="6" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" x:Name="RemoteDeckUrlText" IsReadOnly="True" Text="Server stopped — toggle Enable Server to launch local Touch Deck" Foreground="{StaticResource TextMutedBrush}" />
+                                        <Button Grid.Column="2" Content="Copy URL" Style="{StaticResource SecondaryButtonStyle}" Click="CopyDeckUrlButton_Click" />
+                                        <Button Grid.Column="4" Content="Open" Style="{StaticResource SecondaryButtonStyle}" Click="OpenDeckBrowserButton_Click" />
+                                    </Grid>
+
+                                    <TextBlock FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"
+                                               Text="Open the URL on any browser, phone, or tablet to control Mute, Bypass, Hold-to-Bleep, Voice Presets, and Soundboard Pads over live WebSockets." />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Row 3: Subtle Routing Footer -->
+        <TextBlock x:Name="FooterTipText"
+                   Grid.Row="3"
+                   Margin="2,6,2,0"
+                   FontSize="10.5"
+                   Foreground="{StaticResource TextMutedBrush}"
+                   Text="Routing Tip: Route Output Target to a virtual cable (VB-Cable / VoiceMeeter / Steam Streaming Mic) for Discord/OBS, and enable Monitor Out to hear yourself and soundboard clips live." />
+    </Grid>
+</Window>

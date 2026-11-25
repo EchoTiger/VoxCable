@@ -1,0 +1,50 @@
+name: Build, Test & Package VoxCable
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore VoxCable.sln
+
+      - name: Build (Release)
+        run: dotnet build VoxCable.sln -c Release --no-restore
+
+      - name: Run Unit Tests
+        run: dotnet test VoxCable.sln -c Release --no-build --verbosity normal
+
+      - name: Publish Single-File Win-x64
+        run: >
+          dotnet publish src/VoxCable/VoxCable.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=None
+          -o publish/win-x64
+
+      - name: Run Headless Smoke Test
+        run: |
+          ./publish/win-x64/VoxCable.exe --smoke-test --smoke-test-out smoke.txt
+          Get-Content smoke.txt
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoxCable-win-x64
+          path: publish/win-x64/VoxCable.exe
