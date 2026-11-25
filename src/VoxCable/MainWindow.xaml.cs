@@ -57,6 +57,27 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        _isSyncingUi = true;
+        _saveDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
+        _saveDebounceTimer.Tick += (_, _) =>
+        {
+            _saveDebounceTimer.Stop();
+            PersistSettingsNow();
+        };
+
+        _bleepPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
+        _bleepPollTimer.Tick += (_, _) =>
+        {
+            if (!GlobalHotkeyManager.IsBleepKeyCurrentlyDown)
+            {
+                _bleepPollTimer.Stop();
+                SetHoldToBleep(false);
+            }
+        };
+
+        _meterTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+        _meterTimer.Tick += OnMeterTimerTick;
+
         InitializeComponent();
 
         _remoteDeck = new RemoteDeckServer(BuildRemoteDeckState, HandleRemoteDeckCommand);
@@ -83,26 +104,6 @@ public partial class MainWindow : Window
         _hotkeyManager.HotkeyPressed += OnGlobalHotkeyPressed;
         _trayManager.RestoreRequested += () => Dispatcher.BeginInvoke(RestoreFromTray);
 
-        _saveDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
-        _saveDebounceTimer.Tick += (_, _) =>
-        {
-            _saveDebounceTimer.Stop();
-            PersistSettingsNow();
-        };
-
-        _bleepPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
-        _bleepPollTimer.Tick += (_, _) =>
-        {
-            if (!GlobalHotkeyManager.IsBleepKeyCurrentlyDown)
-            {
-                _bleepPollTimer.Stop();
-                SetHoldToBleep(false);
-            }
-        };
-
-        _meterTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
-        _meterTimer.Tick += OnMeterTimerTick;
-
         BuildSignalFlowStrip();
         BuildSoundboardPads();
 
@@ -118,6 +119,7 @@ public partial class MainWindow : Window
         RefreshSoundboardPadLabels();
         UpdateBankButtonVisuals();
         UpdateConnectionVisuals();
+        _isSyncingUi = false;
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -826,7 +828,7 @@ public partial class MainWindow : Window
 
     private void DeviceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isSyncingUi) return;
+        if (_isSyncingUi || !IsLoaded) return;
         UpdateFeedbackWarning();
         ScheduleDebouncedSave();
         if (_engine.IsRunning) StartBridge();
@@ -849,7 +851,7 @@ public partial class MainWindow : Window
 
     private void LatencyComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isSyncingUi) return;
+        if (_isSyncingUi || !IsLoaded) return;
         ScheduleDebouncedSave();
         if (_engine.IsRunning) StartBridge(skipFeedbackPrompt: true);
     }
